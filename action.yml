@@ -1,5 +1,5 @@
-name: "Deploy"
-description: "Deploy using Docker and docker-compose"
+name: "Build"
+description: "Build and publish Docker image"
 inputs:
   docker-user:
     description: "Docker User"
@@ -7,23 +7,8 @@ inputs:
   docker-password:
     description: "Docker Password"
     required: true
-  docker-compose-file:
-    description: "Docker Compose File"
-    required: true
   docker-image-name:
     description: "Docker Image Name"
-    required: true
-  docker-env-vars:
-    description: "Docker Environment Variables"
-    required: true
-  ssh-host:
-    description: "SSH Host"
-    required: true
-  ssh-user:
-    description: "SSH User"
-    required: true
-  ssh-private-key:
-    description: "SSH Private Key"
     required: true
   working-directory:
     description: "Optional working directory"
@@ -33,71 +18,16 @@ runs:
   using: "composite"
   steps:
     - id: docker-login
-      run: echo ${{ inputs.docker-password }} | docker login https://docker.pkg.github.com --username ${{ inputs.docker-user }} --password-stdin
+      run: echo ${{ inputs.docker-password }} | docker login https://ghcr.io --username ${{ inputs.docker-user }} --password-stdin
       shell: bash
       working-directory: ${{ inputs.working-directory }}
 
     - id: docker-build
-      run: docker build -t docker.pkg.github.com/${{ github.repository }}/${{ inputs.docker-image-name }}:latest .
+      run: docker build -t ghcr.io/${{ github.repository }}/${{ inputs.docker-image-name }}:latest .
       shell: bash
       working-directory: ${{ inputs.working-directory }}
 
     - id: docker-push
-      run: docker push docker.pkg.github.com/${{ github.repository }}/${{ inputs.docker-image-name }}:latest
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-
-    - id: create-local-ssh-folder
-      run: mkdir -p ~/.ssh
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-
-    - id: prepare-ssh-key
-      run: |
-        echo "${{ inputs.ssh-private-key }}" | sed '/^$/d' > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-
-    - id: add-known-host
-      run: ssh-keyscan -H ${{ inputs.ssh-host }} > ~/.ssh/known_hosts
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-
-    - id: create-remote-folder
-      run: ssh ${{ inputs.ssh-user }}@${{ inputs.ssh-host }} mkdir -p ${{ inputs.docker-image-name }}
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-
-    - id: scp-docker-compose-file
-      run: "scp ${{ inputs.docker-compose-file }} ${{ inputs.ssh-user }}@${{ inputs.ssh-host }}:${{ inputs.docker-image-name }}/docker-compose.yml"
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-
-    - id: create-docker-env-file
-      run: |
-        ssh ${{ inputs.ssh-user }}@${{ inputs.ssh-host }} "cat <<EOF > ${{ inputs.docker-image-name }}/env.prod
-        ${{ inputs.docker-env-vars }}
-        EOF"
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-
-    - id: docker-pull-latest
-      run: ssh ${{ inputs.ssh-user }}@${{ inputs.ssh-host }} docker pull docker.pkg.github.com/${{ github.repository }}/${{ inputs.docker-image-name }}:latest
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-
-    - id: docker-compose-up
-      run: ssh ${{ inputs.ssh-user }}@${{ inputs.ssh-host }} "cd ${{ inputs.docker-image-name }} && IMAGE_TAG=latest docker-compose -f docker-compose.yml up -d"
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-
-    - id: remove-remote-folder
-      run: ssh ${{ inputs.ssh-user }}@${{ inputs.ssh-host }} rm -rf ${{ inputs.docker-image-name }}
-      shell: bash
-      working-directory: ${{ inputs.working-directory }}
-
-    - id: docker-system-prune
-      run: ssh ${{ inputs.ssh-user }}@${{ inputs.ssh-host }} docker system prune -f
+      run: docker push ghcr.io/${{ github.repository }}/${{ inputs.docker-image-name }}:latest
       shell: bash
       working-directory: ${{ inputs.working-directory }}

@@ -1,7 +1,7 @@
-# Simple service deployment using GitHub Docker Registry, SSH and Docker Compose
+# Simple Docker build and publish action
 
 ```yml
-name: Deploy
+name: Build and publish Docker image
 
 on:
   push:
@@ -10,22 +10,17 @@ on:
 
 jobs:
   test:
-    name: Clone, build, push and deploy
+    name: Checkout, build and push
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Deploy
-        uses: einsenundnullen/docker-compose-deploy-action@master
+      - name: Build and push
+        uses: einsenundnullen/build-action@master
         with:
           docker-user: ${{ github.repository_owner }}
           docker-password: ${{ secrets.GITHUB_TOKEN }}
           docker-image-name: test-service
-          docker-compose-file: docker-compose-prod.yml
-          docker-env-vars: ${{ secrets.PROD_ENV }}
-          ssh-user: ci
-          ssh-host: ${{ secrets.HOST }}
-          ssh-private-key: ${{ secrets.PRIVATE_KEY }}
-          working-directory: ./optional-service-directory
+          working-directory: ./optional-working-directory
 ```
